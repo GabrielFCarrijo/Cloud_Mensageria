@@ -1,9 +1,9 @@
-const { Client } = require('pg');
+const { client } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 
-class DatabaseService {
+class databaseservice {
   constructor() {
-    this.client = new Client({
+    this.client = new client({
       user: 'postgres',
       host: 'localhost',
       database: 'subclient',
@@ -12,67 +12,67 @@ class DatabaseService {
     });
 
     this.client.connect()
-      .then(() => console.log('Conectado ao PostgreSQL'))
-      .catch((err) => console.error('Erro ao conectar ao PostgreSQL', err));
+      .then(() => console.log('conectado ao postgresql'))
+      .catch((err) => console.error('erro ao conectar ao postgresql', err));
   }
 
-  insertCustomer(customer) {
+  insertcustomer(customer) {
     return this.client.query(`
-      INSERT INTO customer (id, name)
-      VALUES ($1, $2)
-      ON CONFLICT (id) DO UPDATE
-      SET name = EXCLUDED.name;
+      insert into customer (id, name)
+      values ($1, $2)
+      on conflict (id) do update
+      set name = excluded.name;
     `, [customer.id, customer.name]);
   }
 
-  insertOrder(order, customer) {
-    return this.insertCustomer(customer)
+  insertorder(order, customer) {
+    return this.insertcustomer(customer)
       .then(() => {
         return this.client.query(`
-          INSERT INTO "order" (id, created_at, type, customer_id)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (id) DO UPDATE
-          SET created_at = EXCLUDED.created_at,
-              type = EXCLUDED.type,
-              customer_id = EXCLUDED.customer_id;
-        `, [order.id, order.createdAt, order.type, customer.id]);
+          insert into "order" (id, created_at, type, customer_id)
+          values ($1, $2, $3, $4)
+          on conflict (id) do update
+          set created_at = excluded.created_at,
+              type = excluded.type,
+              customer_id = excluded.customer_id;
+        `, [order.id, order.createdat, order.type, customer.id]);
       });
   }
 
-  insertProduct(sku, value) {
+  insertproduct(sku, value) {
     return this.client.query(`
-      INSERT INTO product (id, value)
-      VALUES ($1, $2)
-      ON CONFLICT (id) DO UPDATE
-      SET value = EXCLUDED.value;
+      insert into product (id, value)
+      values ($1, $2)
+      on conflict (id) do update
+      set value = excluded.value;
     `, [sku, value]);
   }
 
-  insertOrderItem(id, orderId, sku, quantity) {
+  insertorderitem(id, orderid, sku, quantity) {
     return this.client.query(`
-      INSERT INTO order_items (id, order_id, sku, quantity)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (id) DO UPDATE
-      SET order_id = EXCLUDED.order_id,
-          sku = EXCLUDED.sku,
-          quantity = EXCLUDED.quantity;
-    `, [id, orderId, sku, quantity]);
+      insert into order_items (id, order_id, sku, quantity)
+      values ($1, $2, $3, $4)
+      on conflict (id) do update
+      set order_id = excluded.order_id,
+          sku = excluded.sku,
+          quantity = excluded.quantity;
+    `, [id, orderid, sku, quantity]);
   }
 
-  fetchOrders() {
+  fetchorders() {
     return this.client.query(`
-      SELECT
-  p.id AS order_id, p.created_at, p.type,
-  c.id AS customer_id, c.name AS customer_name,
-  i.id AS item_id, i.quantity,
-  s.id AS sku_id, s.value AS sku_value,
-  cat.id AS category_id, subcat.id AS sub_category_id
-FROM "order" p
-INNER JOIN customer c ON c.id = p.customer_id
-INNER JOIN order_items i ON i.order_id = p.id
-INNER JOIN product s ON s.id = i.sku
-LEFT JOIN category cat ON cat.id = s.category_id
-LEFT JOIN sub_category subcat ON subcat.id = cat.sub_category_id;
+      select
+  p.id as order_id, p.created_at, p.type,
+  c.id as customer_id, c.name as customer_name,
+  i.id as item_id, i.quantity,
+  s.id as sku_id, s.value as sku_value,
+  cat.id as category_id, subcat.id as sub_category_id
+from "order" p
+inner join customer c on c.id = p.customer_id
+inner join order_items i on i.order_id = p.id
+inner join product s on s.id = i.sku
+left join category cat on cat.id = s.category_id
+left join sub_category subcat on subcat.id = cat.sub_category_id;
     `)
     .then((result) => {
       const orders = {};
@@ -95,7 +95,7 @@ LEFT JOIN sub_category subcat ON subcat.id = cat.sub_category_id;
           id: row.item_id,
           sku: {
             id: row.sku_id,
-            value: parseFloat(row.sku_value) || 0, 
+            value: parsefloat(row.sku_value) || 0, 
           },
           quantity: row.quantity,
           category: {
@@ -107,29 +107,29 @@ LEFT JOIN sub_category subcat ON subcat.id = cat.sub_category_id;
         });
       });
   
-      return Object.values(orders);
+      return object.values(orders);
     })
     .catch((err) => {
-      console.error('Erro ao consultar o banco de dados:', err);
-      throw new Error('Erro ao consultar o banco de dados');
+      console.error('erro ao consultar o banco de dados:', err);
+      throw new error('erro ao consultar o banco de dados');
     });
   }
   
-  fetchOrderById(id) {
+  fetchorderbyid(id) {
     return this.client.query(`
-      SELECT
-        p.id AS order_id, p.created_at, p.type,
-        c.id AS customer_id, c.name AS customer_name,
-        i.id AS item_id, i.quantity,
-        s.id AS sku_id, s.value AS sku_value,
-        cat.id AS category_id, subcat.id AS sub_category_id
-      FROM "order" p
-      INNER JOIN customer c ON c.id = p.customer_id
-      INNER JOIN order_items i ON i.order_id = p.id
-      INNER JOIN product s ON s.id = i.sku
-      LEFT JOIN category cat ON cat.id = s.category_id
-      LEFT JOIN sub_category subcat ON subcat.id = cat.sub_category_id
-      WHERE p.id = $1;  -- Utiliza o ID do pedido
+      select
+        p.id as order_id, p.created_at, p.type,
+        c.id as customer_id, c.name as customer_name,
+        i.id as item_id, i.quantity,
+        s.id as sku_id, s.value as sku_value,
+        cat.id as category_id, subcat.id as sub_category_id
+      from "order" p
+      inner join customer c on c.id = p.customer_id
+      inner join order_items i on i.order_id = p.id
+      inner join product s on s.id = i.sku
+      left join category cat on cat.id = s.category_id
+      left join sub_category subcat on subcat.id = cat.sub_category_id
+      where p.id = $1;  -- utiliza o id do pedido
     `, [id]) 
     .then((result) => {
       if (result.rows.length === 0) return null; 
@@ -150,7 +150,7 @@ LEFT JOIN sub_category subcat ON subcat.id = cat.sub_category_id;
           id: row.item_id,
           sku: {
             id: row.sku_id,
-            value: parseFloat(row.sku_value) || 0,
+            value: parsefloat(row.sku_value) || 0,
           },
           quantity: row.quantity,
           category: {
@@ -165,11 +165,11 @@ LEFT JOIN sub_category subcat ON subcat.id = cat.sub_category_id;
       return order;
     })
     .catch((err) => {
-      console.error('Erro ao consultar o banco de dados:', err);
-      throw new Error('Erro ao consultar o banco de dados');
+      console.error('erro ao consultar o banco de dados:', err);
+      throw new error('erro ao consultar o banco de dados');
     });
   }
   
 }
 
-module.exports = DatabaseService;
+module.exports = databaseservice;
