@@ -1,11 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const PubSubService = require('./PubSubService');
-const DatabaseService = require('./DatabaseService');
 
 const app = express();
 const pubSubService = new PubSubService();
-const dbService = new DatabaseService();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -15,25 +13,53 @@ app.post('/mensagem', (req, res) => {
   res.status(200).json({ mensagem: 'Processamento iniciado' });
 });
 
-app.get('/orders', (req, res) => {
-  dbService.fetchOrders()
-    .then((result) => res.status(200).json(result))
-    .catch((err) => res.status(500).json({ mensagem: 'Erro ao consultar o banco de dados' }));
+app.get('/orders', async (req, res) => {
+  const { uuid, customer_id, product_id } = req.query;
+
+  const filters = {
+    uuid,
+    customer_id,
+    product_id,
+  };
+
+  try {
+    const orders = await pubSubService.getOrders(filters);
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error('Erro ao consultar os pedidos:', err);
+    res.status(500).json({ mensagem: 'Erro ao consultar o banco de dados' });
+  }
 });
 
-app.get('/orders/:id', (req, res) => {
+
+app.get('/orders/:id', async (req, res) => {
   const { id } = req.params;
-  
-  dbService.fetchOrderById(id)
-    .then((result) => {
-      if (result) {
-        res.status(200).json(result);
-      } else {
-        res.status(404).json({ mensagem: 'Pedido não encontrado' });
-      }
-    })
-    .catch((err) => res.status(500).json({ mensagem: 'Erro ao consultar o banco de dados' }));
+  const { sku_id } = req.query;
+
+  try {
+    const result = await pubSubService.getOrder(id, sku_id);
+    if (result) {
+      res.status(200).json(result);
+    } else {
+      res.status(404).json({ mensagem: 'Pedido não encontrado' });
+    }
+  } catch (err) {
+    console.error('Erro ao consultar o pedido:', err);
+    res.status(500).json({ mensagem: 'Erro ao consultar o banco de dados' });
+  }
 });
 
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+
+async function startServer() {
+  try {
+    await pubSubService.connectDB(); 
+    app.listen(3000, () => {
+      console.log('Servidor rodando na porta 3000');
+    });
+  } catch (err) {
+    console.error('Erro ao conectar ao PostgreSQL', err);
+  }
+}
+
+startServer();
